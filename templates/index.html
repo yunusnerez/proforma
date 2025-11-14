@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Treatment Plan Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .treatments-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .treatment-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .treatment-item h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .treatment-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            margin-left: 10px;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .add-treatment-btn {
+            background: #28a745;
+            margin-top: 10px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            margin-top: 30px;
+        }
+
+        .info-text {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏥 Treatment Plan Generator</h1>
+        
+        <form id="treatmentForm" method="POST" action="/generate" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="title">Title:</label>
+                <input type="text" id="title" name="title" value="Treatment Plan" required>
+            </div>
+
+            <div class="form-group">
+                <label for="billed_to">Patient Name:</label>
+                <input type="text" id="billed_to" name="billed_to" placeholder="Enter patient name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="consultant">Medical Consultant:</label>
+                <input type="text" id="consultant" name="consultant" value="Yunus">
+            </div>
+
+            <div class="form-group">
+                <label for="total">Total Package Price:</label>
+                <input type="text" id="total" name="total" placeholder="e.g., £3000">
+            </div>
+
+            <div class="form-group">
+                <label for="template_image">Template Image (Optional):</label>
+                <input type="file" id="template_image" name="template_image" accept="image/jpeg,image/jpg,image/png">
+                <p class="info-text">If not provided, default template will be used</p>
+            </div>
+
+            <div class="treatments-section">
+                <h2 style="color: #333; margin-bottom: 20px;">Treatments</h2>
+                <div id="treatmentsContainer">
+                    <div class="treatment-item">
+                        <h3>Treatment #1</h3>
+                        <div class="treatment-row">
+                            <div>
+                                <label>Treatment Name:</label>
+                                <input type="text" name="treatment_name[]" placeholder="e.g., Stem Cell Derived Exosomes" required>
+                            </div>
+                            <div>
+                                <label>Note (Optional):</label>
+                                <input type="text" name="treatment_note[]" placeholder="e.g., 20 billion exosomes">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn add-treatment-btn" onclick="addTreatment()">+ Add Treatment</button>
+            </div>
+
+            <button type="submit" class="btn submit-btn">Generate PDF</button>
+        </form>
+    </div>
+
+    <script>
+        let treatmentCount = 1;
+
+        function addTreatment() {
+            treatmentCount++;
+            const container = document.getElementById('treatmentsContainer');
+            const newTreatment = document.createElement('div');
+            newTreatment.className = 'treatment-item';
+            newTreatment.innerHTML = `
+                <h3>Treatment #${treatmentCount}</h3>
+                <div class="treatment-row">
+                    <div>
+                        <label>Treatment Name:</label>
+                        <input type="text" name="treatment_name[]" placeholder="e.g., Stem Cell Derived Exosomes" required>
+                    </div>
+                    <div>
+                        <label>Note (Optional):</label>
+                        <input type="text" name="treatment_note[]" placeholder="e.g., 20 billion exosomes">
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-danger" onclick="removeTreatment(this)">Remove</button>
+                </div>
+            `;
+            container.appendChild(newTreatment);
+        }
+
+        function removeTreatment(button) {
+            const container = document.getElementById('treatmentsContainer');
+            if (container.children.length > 1) {
+                button.closest('.treatment-item').remove();
+            } else {
+                alert('You must have at least one treatment!');
+            }
+        }
+    </script>
+</body>
+</html>
+
