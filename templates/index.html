@@ -143,7 +143,7 @@
     <div class="container">
         <h1>🏥 Treatment Plan Generator</h1>
         
-        <form id="treatmentForm" method="POST" action="/generate" enctype="multipart/form-data">
+        <form id="treatmentForm" method="POST" action="/generate">
             <div class="form-group">
                 <label for="title">Title:</label>
                 <input type="text" id="title" name="title" value="Treatment Plan" required>
@@ -162,12 +162,6 @@
             <div class="form-group">
                 <label for="total">Total Package Price:</label>
                 <input type="text" id="total" name="total" placeholder="e.g., £3000">
-            </div>
-
-            <div class="form-group">
-                <label for="template_image">Template Image (Optional):</label>
-                <input type="file" id="template_image" name="template_image" accept="image/jpeg,image/jpg,image/png">
-                <p class="info-text">If not provided, default template will be used</p>
             </div>
 
             <div class="treatments-section">
