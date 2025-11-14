@@ -8,9 +8,17 @@ app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 class PDF(FPDF):
-    def header(self, template_path="template_clean.jpg"):
-        if os.path.exists(template_path):
-            self.image(template_path, x=0, y=0, w=210, h=297)
+    def __init__(self, template_image=None):
+        super().__init__()
+        self.template_image = template_image
+    
+    def header(self):
+        # Template image'ı memory'den yükle (Vercel'de dosya sistemi salt okunur)
+        if self.template_image is not None:
+            # BytesIO'yu kullan - seek(0) ile başa al
+            self.template_image.seek(0)
+            # FPDF'in image() metodu file-like object kabul eder
+            self.image(self.template_image, x=0, y=0, w=210, h=297)
 
     def add_content(self, data):
         self.set_font("Arial", "B", 16)
@@ -87,29 +95,35 @@ def generate_pdf():
                     "note": note.strip() if note else ""
                 })
 
-        # Template image kontrolü
-        template_path = "template_clean.jpg"
+        # Template image kontrolü - Memory'de tut (Vercel'de dosya sistemi salt okunur)
+        template_image = None
+        
+        # Yüklenen template image varsa memory'de tut
         if 'template_image' in request.files:
             file = request.files['template_image']
             if file.filename:
-                # Upload edilen dosyayı kaydet
-                template_path = f"temp_template_{datetime.now().timestamp()}.jpg"
-                file.save(template_path)
+                # Dosyayı memory'de tut (diske yazma)
+                file.seek(0)
+                template_image = io.BytesIO(file.read())
+        
+        # Default template'i yükle (eğer yeni template yüklenmediyse)
+        if template_image is None:
+            try:
+                # Vercel'de dosya build sırasında mevcut olacak
+                if os.path.exists("template_clean.jpg"):
+                    with open("template_clean.jpg", "rb") as f:
+                        template_image = io.BytesIO(f.read())
+            except Exception:
+                # Template dosyası yoksa veya okunamazsa devam et (template olmadan PDF oluştur)
+                pass
 
-        # PDF oluştur
-        pdf = PDF()
-        pdf.add_page()
+        # PDF oluştur - template image'ı constructor'a geç
+        pdf = PDF(template_image=template_image)
+        pdf.add_page()  # add_page() otomatik olarak header() metodunu çağırır
         pdf.add_content(data)
 
         # PDF'i memory'de sakla
         pdf_bytes = pdf.output(dest='S').encode('latin-1')
-
-        # Geçici template dosyasını sil
-        if template_path.startswith("temp_template_"):
-            try:
-                os.remove(template_path)
-            except:
-                pass
 
         # Dosya adı oluştur
         name = data["billed_to"].split("\n")[0].replace(" ", "_") if data["billed_to"] else "treatment_plan"
@@ -130,5 +144,5 @@ if __name__ == '__main__':
     # Template klasörünü oluştur
     os.makedirs("templates", exist_ok=True)
     port = int(os.environ.get('PORT', 5000))
-    app.run(debug=True, host='0.0.0.0', port=port)
+    app.run(debug=False, host='0.0.0.0', port=port)
 
