@@ -51,6 +51,11 @@ class PDF(FPDF):
         
         return result
     
+    def _format_currency(self, currency, amount):
+        """Para birimi formatla - sembolden sonra boşluk ekle"""
+        currency_text = self._safe_text(currency)
+        return f"{currency_text} {amount:,.2f}"
+    
     def header(self):
         # Template image'ı ekle
         if os.path.exists(template_path):
@@ -61,11 +66,25 @@ class PDF(FPDF):
             self.rect(0, 0, 210, 297, 'F')
 
     def add_invoice(self, data):
-        # Invoice number ve date
+        # Invoice bilgileri - SAĞ ÜSTTE (örnekteki gibi)
         invoice_no = data.get('invoice_no', f"PRO-{int(os.urandom(4).hex(), 16) % 1000000:06d}")
         
+        self.set_y(20)
+        self.set_x(120)
+        self.set_font("helvetica", "B", 16)
+        self.set_text_color(0)
+        self.cell(0, 8, "PROFORMA INVOICE", ln=1, align="R")
+        
+        self.set_x(120)
+        self.set_font("helvetica", "", 10)
+        self.set_text_color(100)
+        self.cell(0, 5, f"Invoice #: {invoice_no}", ln=1, align="R")
+        
+        self.set_x(120)
+        self.cell(0, 5, f"Date: {data['invoice_date']}", ln=1, align="R")
+        
         # Billed By ve Billed To bölümleri - KUTUSUZ, sadece yazı (örnekteki gibi)
-        self.set_y(65)
+        self.set_y(50)
         self.set_x(10)
         self.set_draw_color(180)
         self.set_line_width(0.2)
@@ -76,41 +95,20 @@ class PDF(FPDF):
         self.multi_cell(90, 5.5, f"Billed By:\n{self._safe_text(data['billed_by'])}", border=1)
         
         # Billed To (sağ) - kutusuz
-        self.set_y(65)
+        self.set_y(50)
         self.set_x(110)
         self.multi_cell(90, 5.5, f"Billed To:\n{self._safe_text(data['billed_to'])}", border=1)
         
-        # Invoice number ve date
-        self.set_y(85)
-        self.set_x(10)
-        self.set_font("helvetica", "", 9)
-        self.set_text_color(0)
-        self.cell(90, 8, f"Invoice No: {invoice_no}", ln=0)
-        self.set_x(110)
-        self.cell(90, 8, f"Invoice Date: {data['invoice_date']}", ln=1)
-        
-        # Items table
+        # Items table - SADECE Item ve Amount (örnekteki gibi)
         self.set_y(102)
         self.set_x(10)
         self.set_fill_color(225, 236, 247)
         self.set_text_color(0, 51, 102)
         self.set_font("helvetica", "B", 12)
         
-        headers = ["Item"]
-        if data.get("show_quantity", True):
-            headers.append("Quantity")
-        if data.get("show_rate", False):
-            headers.append("Rate")
-        if data.get("show_amount", True):
-            headers.append("Amount")
-
-        col_widths = [80]
-        if data.get("show_quantity", True):
-            col_widths.append(30)
-        if data.get("show_rate", False):
-            col_widths.append(40)
-        if data.get("show_amount", True):
-            col_widths.append(40)
+        # Sadece Item ve Amount sütunları
+        headers = ["Item", "Amount"]
+        col_widths = [140, 50]  # Item geniş, Amount dar
 
         # Header row
         for header, width in zip(headers, col_widths):
@@ -121,6 +119,8 @@ class PDF(FPDF):
         self.set_font("helvetica", "", 11)
         self.set_text_color(0)
         total = 0.0
+        currency = self._safe_text(data.get('currency', '£'))
+        
         for item in data.get("items", []):
             item_name = self._safe_text(item.get("item", ""))
             quantity = item.get("quantity", 1)
@@ -130,18 +130,7 @@ class PDF(FPDF):
 
             self.set_x(10)
             self.cell(col_widths[0], 9, item_name, 1)
-
-            col_idx = 1
-            if data.get("show_quantity", True):
-                self.cell(col_widths[col_idx], 9, str(quantity), 1, 0, "R")
-                col_idx += 1
-            if data.get("show_rate", False):
-                currency = self._safe_text(data.get('currency', '£'))
-                self.cell(col_widths[col_idx], 9, f"{currency}{rate:,.2f}", 1, 0, "R")
-                col_idx += 1
-            if data.get("show_amount", True):
-                currency = self._safe_text(data.get('currency', '£'))
-                self.cell(col_widths[col_idx], 9, f"{currency}{amount:,.2f}", 1, 0, "R")
+            self.cell(col_widths[1], 9, self._format_currency(currency, amount), 1, 0, "R")
             total += amount
             self.ln()
 
@@ -149,33 +138,32 @@ class PDF(FPDF):
                 self.set_x(12)
                 self.set_font("helvetica", "I", 10)
                 self.set_text_color(90)
-                self.multi_cell(sum(col_widths), 6, self._safe_text(note))
+                self.multi_cell(sum(col_widths) - 4, 6, self._safe_text(note))
                 self.set_font("helvetica", "", 11)
                 self.set_text_color(0)
 
-        # Summary section - tablo formatında (örnekteki gibi)
-        summary_y = self.get_y() + 3
-        self.set_y(summary_y)
-        self.set_x(10)
-        
-        currency = self._safe_text(data.get('currency', '£'))
+        # Summary section - SAĞ ALTTA (örnekteki gibi)
         deposit = data.get("deposit", 0.0)
         remaining = total - deposit
         
-        # Total, Deposit, Remaining - tablo formatında
-        self.set_font("helvetica", "B", 12)
-        self.cell(sum(col_widths[:-1]), 10, "Total", 1)
-        self.cell(col_widths[-1], 10, f"{currency}{total:,.2f}", 1, 1, "R")
+        # Sağ alt köşeye yerleştir
+        summary_y = self.get_y() + 10
+        summary_x = 110  # Sağ taraf
         
+        self.set_y(summary_y)
+        self.set_x(summary_x)
+        
+        # Total, Deposit, Remaining - sağ hizalı
+        self.set_font("helvetica", "B", 12)
+        self.cell(90, 8, f"Total: {self._format_currency(currency, total)}", 0, 1, "R")
+        
+        self.set_x(summary_x)
         self.set_font("helvetica", "", 11)
-        self.set_x(10)
-        self.cell(sum(col_widths[:-1]), 10, "Deposit", 1)
-        self.cell(col_widths[-1], 10, f"{currency}{deposit:,.2f}", 1, 1, "R")
+        self.cell(90, 8, f"Deposit: {self._format_currency(currency, deposit)}", 0, 1, "R")
         
+        self.set_x(summary_x)
         self.set_font("helvetica", "B", 12)
-        self.set_x(10)
-        self.cell(sum(col_widths[:-1]), 10, "Remaining", 1)
-        self.cell(col_widths[-1], 10, f"{currency}{remaining:,.2f}", 1, 1, "R")
+        self.cell(90, 8, f"Remaining: {self._format_currency(currency, remaining)}", 0, 1, "R")
 
         # Cash note
         if data.get("cash_note"):
@@ -183,7 +171,7 @@ class PDF(FPDF):
             self.set_text_color(120)
             self.set_y(self.get_y() + 3)
             self.set_x(10)
-            self.cell(0, 10, self._safe_text(data["cash_note"]), ln=True)
+            self.multi_cell(0, 5, self._safe_text(data["cash_note"]))
             self.set_text_color(0)
 
 class handler(BaseHTTPRequestHandler):
