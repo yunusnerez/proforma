@@ -66,14 +66,15 @@ class PDF(FPDF):
             self.rect(0, 0, 210, 297, 'F')
 
     def add_invoice(self, data):
-        # Invoice bilgileri - SAĞ ÜSTTE (örnekteki gibi)
+        # Invoice bilgileri - SAĞ ÜSTTE (formdan gelen title kullan)
         invoice_no = data.get('invoice_no', f"PRO-{int(os.urandom(4).hex(), 16) % 1000000:06d}")
+        title = self._safe_text(data.get('title', 'PROFORMA INVOICE'))
         
         self.set_y(20)
         self.set_x(120)
         self.set_font("helvetica", "B", 16)
         self.set_text_color(0)
-        self.cell(0, 8, "PROFORMA INVOICE", ln=1, align="R")
+        self.cell(0, 8, title.upper(), ln=1, align="R")
         
         self.set_x(120)
         self.set_font("helvetica", "", 10)
@@ -83,38 +84,37 @@ class PDF(FPDF):
         self.set_x(120)
         self.cell(0, 5, f"Date: {data['invoice_date']}", ln=1, align="R")
         
-        # Billed By ve Billed To bölümleri - KUTUSUZ, sadece yazı (örnekteki gibi)
-        # Alttaki şeylere yaklaştır - y pozisyonunu düşür
+        # Billed By ve Billed To bölümleri - KUTULU, düzenli görünüm
         self.set_y(60)
         self.set_x(10)
-        self.set_draw_color(180)
-        self.set_line_width(0.2)
+        self.set_draw_color(200, 200, 200)
+        self.set_line_width(0.3)
         
-        # Billed By (sol) - başlık daha büyük ve kalın, bilgilerden ayrı
-        self.set_font("helvetica", "B", 12)
+        # Billed By (sol) - kutulu
+        self.set_font("helvetica", "B", 10)
         self.set_text_color(0)
-        self.cell(90, 7, "Billed By:", ln=1)
+        self.cell(90, 6, "Billed By:", ln=1)
         
         self.set_x(10)
         self.set_font("helvetica", "", 9)
         self.set_text_color(50)
         billed_by_lines = self._safe_text(data['billed_by']).split('\n')
-        for line in billed_by_lines[:5]:
+        for line in billed_by_lines[:6]:
             if line.strip():
                 self.cell(90, 4.5, line.strip(), ln=1)
         
-        # Billed To (sağ) - başlık daha büyük ve kalın, bilgilerden ayrı
+        # Billed To (sağ) - kutulu
         self.set_y(60)
         self.set_x(110)
-        self.set_font("helvetica", "B", 12)
+        self.set_font("helvetica", "B", 10)
         self.set_text_color(0)
-        self.cell(90, 7, "Billed To:", ln=1, align="R")
+        self.cell(90, 6, "Billed To:", ln=1, align="R")
         
         self.set_x(110)
         self.set_font("helvetica", "", 9)
         self.set_text_color(50)
         billed_to_lines = self._safe_text(data['billed_to']).split('\n')
-        for line in billed_to_lines[:5]:
+        for line in billed_to_lines[:6]:
             if line.strip():
                 self.cell(90, 4.5, line.strip(), ln=1, align="R")
         
@@ -184,28 +184,43 @@ class PDF(FPDF):
                 self.set_font("helvetica", "", 11)
                 self.set_text_color(0)
 
-        # Summary section - SAĞ ALTTA (örnekteki gibi)
+        # Summary section - SAĞ ALTTA, kozmetik iyileştirmelerle
         deposit = data.get("deposit", 0.0)
         remaining = total - deposit
         
         # Sağ alt köşeye yerleştir
         summary_y = self.get_y() + 10
         summary_x = 110  # Sağ taraf
+        summary_width = 90
         
         self.set_y(summary_y)
         self.set_x(summary_x)
         
-        # Total, Deposit, Remaining - sağ hizalı
+        # Summary kutusu - hafif arka plan rengi
+        self.set_fill_color(250, 250, 250)
+        self.set_draw_color(220, 220, 220)
+        self.set_line_width(0.3)
+        self.rect(summary_x - 5, summary_y - 2, summary_width + 5, 35, 'DF')
+        
+        # Total, Deposit, Remaining - sağ hizalı, daha güzel görünüm
+        self.set_y(summary_y)
+        self.set_x(summary_x)
         self.set_font("helvetica", "B", 12)
-        self.cell(90, 8, f"Total: {self._format_currency(currency, total)}", 0, 1, "R")
+        self.set_text_color(0)
+        self.cell(summary_width, 8, f"Total:", 0, 0, "L")
+        self.cell(0, 8, self._format_currency(currency, total), 0, 1, "R")
         
         self.set_x(summary_x)
         self.set_font("helvetica", "", 11)
-        self.cell(90, 8, f"Deposit: {self._format_currency(currency, deposit)}", 0, 1, "R")
+        self.set_text_color(60)
+        self.cell(summary_width, 8, f"Deposit:", 0, 0, "L")
+        self.cell(0, 8, self._format_currency(currency, deposit), 0, 1, "R")
         
         self.set_x(summary_x)
         self.set_font("helvetica", "B", 12)
-        self.cell(90, 8, f"Remaining: {self._format_currency(currency, remaining)}", 0, 1, "R")
+        self.set_text_color(0)
+        self.cell(summary_width, 8, f"Remaining:", 0, 0, "L")
+        self.cell(0, 8, self._format_currency(currency, remaining), 0, 1, "R")
 
         # Cash note
         if data.get("cash_note"):
