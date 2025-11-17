@@ -143,7 +143,7 @@
     <div class="container">
         <h1>🏥 Treatment Plan Generator</h1>
         
-        <form id="treatmentForm" method="POST" action="/generate" target="_parent">
+        <form id="treatmentForm" method="POST" action="/generate">
             <div class="form-group">
                 <label for="title">Title:</label>
                 <input type="text" id="title" name="title" value="Treatment Plan" required>
@@ -189,6 +189,64 @@
     </div>
 
     <script>
+        // Handle form submission with fetch to bypass iframe sandbox restrictions
+        document.getElementById('treatmentForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const form = e.target;
+            const formData = new FormData(form);
+            const submitButton = form.querySelector('button[type="submit"]');
+            const originalText = submitButton.textContent;
+            
+            // Show loading state
+            submitButton.disabled = true;
+            submitButton.textContent = 'Generating PDF...';
+            
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error('PDF generation failed');
+                }
+                
+                // Get PDF as blob
+                const blob = await response.blob();
+                
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                
+                // Get filename from Content-Disposition header or use default
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = 'treatment_plan.pdf';
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                    if (filenameMatch && filenameMatch[1]) {
+                        filename = filenameMatch[1].replace(/['"]/g, '');
+                    }
+                }
+                
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                // Reset button
+                submitButton.disabled = false;
+                submitButton.textContent = originalText;
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Error generating PDF. Please try again.');
+                submitButton.disabled = false;
+                submitButton.textContent = originalText;
+            }
+        });
+
         let treatmentCount = 1;
 
         function addTreatment() {
