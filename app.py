@@ -66,6 +66,18 @@ class PDF(FPDF):
         self.set_font("Arial", "", 10)
         self.cell(0, 6, consultant, ln=True, align="R")
 
+@app.after_request
+def after_request(response):
+    # X-Frame-Options header'ını kaldır (iframe'e izin ver)
+    response.headers.pop('X-Frame-Options', None)
+    # Content-Security-Policy ayarları - iframe'e izin ver
+    response.headers['Content-Security-Policy'] = "frame-ancestors *"
+    # CORS headers (opsiyonel ama iyi pratik)
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return response
+
 @app.route('/')
 def index():
     return render_template('index.html')
