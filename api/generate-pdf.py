@@ -13,38 +13,43 @@ class PDF(FPDF):
     def __init__(self):
         super().__init__()
         self.set_auto_page_break(auto=True, margin=15)
-        # Unicode desteği için DejaVu fontunu kullan - ZORUNLU
-        dejavu_path = os.path.join(os.path.dirname(__file__), 'DejaVuSans.ttf')
-        self.unicode_font = None
-        
-        if os.path.exists(dejavu_path):
-            try:
-                # Font'u ekle
-                self.add_font('DejaVu', '', dejavu_path, uni=True)
-                self.add_font('DejaVu', 'B', dejavu_path, uni=True)
-                self.add_font('DejaVu', 'I', dejavu_path, uni=True)
-                # Font'u test et
-                self.set_font('DejaVu', '', 12)
-                self.unicode_font = 'DejaVu'
-            except Exception as e:
-                # Font yükleme hatası - hata fırlat
-                raise Exception(f"DejaVu font yüklenemedi: {str(e)}")
-        else:
-            raise Exception("DejaVu font dosyası bulunamadı")
     
     def _safe_text(self, text):
-        """Türkçe karakterleri güvenli şekilde işle - Unicode desteği"""
+        """Türkçe karakterleri ve özel sembolleri İngilizce karakterlere çevir"""
         if text is None:
             return ""
-        return str(text)
-    
-    def _set_font(self, style='', size=12):
-        """Unicode font kullanarak font ayarla - HER ZAMAN DejaVu"""
-        if self.unicode_font == 'DejaVu':
-            self.set_font('DejaVu', style, size)
-        else:
-            # Eğer DejaVu yoksa hata ver
-            raise Exception("DejaVu font kullanılamıyor")
+        
+        text = str(text)
+        
+        # Türkçe karakter mapping
+        turkish_to_english = {
+            'ı': 'i', 'İ': 'I',
+            'ş': 's', 'Ş': 'S',
+            'ğ': 'g', 'Ğ': 'G',
+            'ü': 'u', 'Ü': 'U',
+            'ö': 'o', 'Ö': 'O',
+            'ç': 'c', 'Ç': 'C'
+        }
+        
+        # Özel sembol mapping
+        symbol_mapping = {
+            '€': 'EUR',
+            '£': 'GBP',
+            '$': 'USD',
+            '¥': 'JPY'
+        }
+        
+        # Karakterleri çevir
+        result = ""
+        for char in text:
+            if char in turkish_to_english:
+                result += turkish_to_english[char]
+            elif char in symbol_mapping:
+                result += symbol_mapping[char]
+            else:
+                result += char
+        
+        return result
     
     def header(self):
         # Template image'ı ekle
@@ -66,7 +71,7 @@ class PDF(FPDF):
         self.set_line_width(0.2)
         
         # Billed By (sol) - kutusuz
-        self._set_font("B", 10)
+        self.set_font("helvetica", "B", 10)
         self.set_text_color(0)
         self.multi_cell(90, 5.5, f"Billed By:\n{self._safe_text(data['billed_by'])}", border=1)
         
@@ -78,7 +83,7 @@ class PDF(FPDF):
         # Invoice number ve date
         self.set_y(85)
         self.set_x(10)
-        self._set_font("", 9)
+        self.set_font("helvetica", "", 9)
         self.set_text_color(0)
         self.cell(90, 8, f"Invoice No: {invoice_no}", ln=0)
         self.set_x(110)
@@ -89,7 +94,7 @@ class PDF(FPDF):
         self.set_x(10)
         self.set_fill_color(225, 236, 247)
         self.set_text_color(0, 51, 102)
-        self._set_font("B", 12)
+        self.set_font("helvetica", "B", 12)
         
         headers = ["Item"]
         if data.get("show_quantity", True):
@@ -113,7 +118,7 @@ class PDF(FPDF):
         self.ln()
 
         # Items rows
-        self._set_font("", 11)
+        self.set_font("helvetica", "", 11)
         self.set_text_color(0)
         total = 0.0
         for item in data.get("items", []):
@@ -131,21 +136,21 @@ class PDF(FPDF):
                 self.cell(col_widths[col_idx], 9, str(quantity), 1, 0, "R")
                 col_idx += 1
             if data.get("show_rate", False):
-                currency = data.get('currency', '£')
+                currency = self._safe_text(data.get('currency', '£'))
                 self.cell(col_widths[col_idx], 9, f"{currency}{rate:,.2f}", 1, 0, "R")
                 col_idx += 1
             if data.get("show_amount", True):
-                currency = data.get('currency', '£')
+                currency = self._safe_text(data.get('currency', '£'))
                 self.cell(col_widths[col_idx], 9, f"{currency}{amount:,.2f}", 1, 0, "R")
             total += amount
             self.ln()
 
             if note:
                 self.set_x(12)
-                self._set_font("I", 10)
+                self.set_font("helvetica", "I", 10)
                 self.set_text_color(90)
                 self.multi_cell(sum(col_widths), 6, self._safe_text(note))
-                self._set_font("", 11)
+                self.set_font("helvetica", "", 11)
                 self.set_text_color(0)
 
         # Summary section - tablo formatında (örnekteki gibi)
@@ -153,28 +158,28 @@ class PDF(FPDF):
         self.set_y(summary_y)
         self.set_x(10)
         
-        currency = data.get('currency', '£')
+        currency = self._safe_text(data.get('currency', '£'))
         deposit = data.get("deposit", 0.0)
         remaining = total - deposit
         
         # Total, Deposit, Remaining - tablo formatında
-        self._set_font("B", 12)
+        self.set_font("helvetica", "B", 12)
         self.cell(sum(col_widths[:-1]), 10, "Total", 1)
         self.cell(col_widths[-1], 10, f"{currency}{total:,.2f}", 1, 1, "R")
         
-        self._set_font("", 11)
+        self.set_font("helvetica", "", 11)
         self.set_x(10)
         self.cell(sum(col_widths[:-1]), 10, "Deposit", 1)
         self.cell(col_widths[-1], 10, f"{currency}{deposit:,.2f}", 1, 1, "R")
         
-        self._set_font("B", 12)
+        self.set_font("helvetica", "B", 12)
         self.set_x(10)
         self.cell(sum(col_widths[:-1]), 10, "Remaining", 1)
         self.cell(col_widths[-1], 10, f"{currency}{remaining:,.2f}", 1, 1, "R")
 
         # Cash note
         if data.get("cash_note"):
-            self._set_font("I", 10)
+            self.set_font("helvetica", "I", 10)
             self.set_text_color(120)
             self.set_y(self.get_y() + 3)
             self.set_x(10)
