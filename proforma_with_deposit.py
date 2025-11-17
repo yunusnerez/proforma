@@ -40,7 +40,7 @@ invoice_data["invoice_no"] = get_next_invoice_number()
 
 class PDF(FPDF):
     def header(self):
-        self.image("template_clean.jpg", x=0, y=0, w=210, h=297)
+        self.image("new_template.jpg", x=0, y=0, w=210, h=297)
 
     def add_invoice(self, data):
         self.set_y(45)
