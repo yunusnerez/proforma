@@ -84,31 +84,64 @@ class PDF(FPDF):
         self.cell(0, 5, f"Date: {data['invoice_date']}", ln=1, align="R")
         
         # Billed By ve Billed To bölümleri - KUTUSUZ, sadece yazı (örnekteki gibi)
-        self.set_y(50)
+        # Alttaki şeylere yaklaştır - y pozisyonunu düşür
+        self.set_y(60)
         self.set_x(10)
         self.set_draw_color(180)
         self.set_line_width(0.2)
         
-        # Billed By (sol) - kutusuz
-        self.set_font("helvetica", "B", 10)
+        # Billed By (sol) - başlık daha büyük ve kalın, bilgilerden ayrı
+        self.set_font("helvetica", "B", 12)
         self.set_text_color(0)
-        self.multi_cell(90, 5.5, f"Billed By:\n{self._safe_text(data['billed_by'])}", border=1)
+        self.cell(90, 7, "Billed By:", ln=1)
         
-        # Billed To (sağ) - kutusuz
-        self.set_y(50)
-        self.set_x(110)
-        self.multi_cell(90, 5.5, f"Billed To:\n{self._safe_text(data['billed_to'])}", border=1)
-        
-        # Items table - SADECE Item ve Amount (örnekteki gibi)
-        self.set_y(102)
         self.set_x(10)
-        self.set_fill_color(225, 236, 247)
-        self.set_text_color(0, 51, 102)
+        self.set_font("helvetica", "", 9)
+        self.set_text_color(50)
+        billed_by_lines = self._safe_text(data['billed_by']).split('\n')
+        for line in billed_by_lines[:5]:
+            if line.strip():
+                self.cell(90, 4.5, line.strip(), ln=1)
+        
+        # Billed To (sağ) - başlık daha büyük ve kalın, bilgilerden ayrı
+        self.set_y(60)
+        self.set_x(110)
+        self.set_font("helvetica", "B", 12)
+        self.set_text_color(0)
+        self.cell(90, 7, "Billed To:", ln=1, align="R")
+        
+        self.set_x(110)
+        self.set_font("helvetica", "", 9)
+        self.set_text_color(50)
+        billed_to_lines = self._safe_text(data['billed_to']).split('\n')
+        for line in billed_to_lines[:5]:
+            if line.strip():
+                self.cell(90, 4.5, line.strip(), ln=1, align="R")
+        
+        # Items table - Opsiyonel Quantity ve Rate ile
+        self.set_y(95)
+        self.set_x(10)
+        # Kutu rengini değiştir - daha koyu gri
+        self.set_fill_color(240, 240, 240)
+        self.set_text_color(0)
         self.set_font("helvetica", "B", 12)
         
-        # Sadece Item ve Amount sütunları
-        headers = ["Item", "Amount"]
-        col_widths = [140, 50]  # Item geniş, Amount dar
+        # Opsiyonel sütunlar
+        headers = ["Item"]
+        if data.get("show_quantity", True):
+            headers.append("Quantity")
+        if data.get("show_rate", False):
+            headers.append("Rate")
+        if data.get("show_amount", True):
+            headers.append("Amount")
+
+        col_widths = [80]
+        if data.get("show_quantity", True):
+            col_widths.append(30)
+        if data.get("show_rate", False):
+            col_widths.append(40)
+        if data.get("show_amount", True):
+            col_widths.append(40)
 
         # Header row
         for header, width in zip(headers, col_widths):
@@ -130,7 +163,16 @@ class PDF(FPDF):
 
             self.set_x(10)
             self.cell(col_widths[0], 9, item_name, 1)
-            self.cell(col_widths[1], 9, self._format_currency(currency, amount), 1, 0, "R")
+
+            col_idx = 1
+            if data.get("show_quantity", True):
+                self.cell(col_widths[col_idx], 9, str(quantity), 1, 0, "R")
+                col_idx += 1
+            if data.get("show_rate", False):
+                self.cell(col_widths[col_idx], 9, self._format_currency(currency, rate), 1, 0, "R")
+                col_idx += 1
+            if data.get("show_amount", True):
+                self.cell(col_widths[col_idx], 9, self._format_currency(currency, amount), 1, 0, "R")
             total += amount
             self.ln()
 
