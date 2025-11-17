@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proforma Invoice Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        input[type="number"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="date"]:focus,
+        input[type="number"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+
+        .items-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .item-row {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .item-row h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .item-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .item-note {
+            grid-column: 1 / -1;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .add-item-btn {
+            background: #28a745;
+            margin-top: 10px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            margin-top: 30px;
+        }
+
+        .info-text {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📄 Proforma Invoice Generator</h1>
+        
+        <form id="invoiceForm" method="POST" action="/generate" target="_parent">
+            <div class="form-group">
+                <label for="title">Title:</label>
+                <input type="text" id="title" name="title" value="Invoice" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="invoice_date">Invoice Date:</label>
+                    <input type="date" id="invoice_date" name="invoice_date" required>
+                </div>
+                <div class="form-group">
+                    <label for="currency">Currency:</label>
+                    <input type="text" id="currency" name="currency" value="£" placeholder="£, $, €" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="billed_by">Billed By:</label>
+                <textarea id="billed_by" name="billed_by" placeholder="You Clinic&#10;Turkey" required></textarea>
+                <span class="info-text">Use new lines for address</span>
+            </div>
+
+            <div class="form-group">
+                <label for="billed_to">Billed To:</label>
+                <textarea id="billed_to" name="billed_to" placeholder="Customer Name&#10;Country" required></textarea>
+                <span class="info-text">Use new lines for address</span>
+            </div>
+
+            <div class="form-group">
+                <label>Display Options:</label>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="show_quantity" name="show_quantity" checked>
+                    <label for="show_quantity" style="display: inline; font-weight: normal;">Show Quantity</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="show_rate" name="show_rate">
+                    <label for="show_rate" style="display: inline; font-weight: normal;">Show Rate</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="show_amount" name="show_amount" checked>
+                    <label for="show_amount" style="display: inline; font-weight: normal;">Show Amount</label>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="deposit">Deposit (Optional):</label>
+                    <input type="number" id="deposit" name="deposit" step="0.01" min="0" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label for="cash_note">Payment Note (Optional):</label>
+                    <input type="text" id="cash_note" name="cash_note" placeholder="e.g., Payment is done in cash">
+                </div>
+            </div>
+
+            <div class="items-section">
+                <h2 style="color: #333; margin-bottom: 20px;">Invoice Items</h2>
+                <div id="itemsContainer">
+                    <div class="item-row">
+                        <h3>Item #1</h3>
+                        <div class="item-grid">
+                            <div>
+                                <label>Item Name:</label>
+                                <input type="text" name="item_name[]" placeholder="e.g., Autism Treatment Package" required>
+                            </div>
+                            <div>
+                                <label>Quantity:</label>
+                                <input type="number" name="item_quantity[]" value="1" step="1" min="1" required>
+                            </div>
+                            <div>
+                                <label>Rate:</label>
+                                <input type="number" name="item_rate[]" step="0.01" min="0" placeholder="0.00" required>
+                            </div>
+                            <div>
+                                <label>Note (Optional):</label>
+                                <input type="text" name="item_note[]" placeholder="Additional info">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn add-item-btn" onclick="addItem()">+ Add Item</button>
+            </div>
+
+            <button type="submit" class="btn submit-btn">Generate PDF</button>
+        </form>
+    </div>
+
+    <script>
+        // Set today's date as default
+        document.getElementById('invoice_date').valueAsDate = new Date();
+
+        let itemCount = 1;
+
+        function addItem() {
+            itemCount++;
+            const container = document.getElementById('itemsContainer');
+            const newItem = document.createElement('div');
+            newItem.className = 'item-row';
+            newItem.innerHTML = `
+                <h3>Item #${itemCount}</h3>
+                <div class="item-grid">
+                    <div>
+                        <label>Item Name:</label>
+                        <input type="text" name="item_name[]" placeholder="e.g., Autism Treatment Package" required>
+                    </div>
+                    <div>
+                        <label>Quantity:</label>
+                        <input type="number" name="item_quantity[]" value="1" step="1" min="1" required>
+                    </div>
+                    <div>
+                        <label>Rate:</label>
+                        <input type="number" name="item_rate[]" step="0.01" min="0" placeholder="0.00" required>
+                    </div>
+                    <div>
+                        <label>Note (Optional):</label>
+                        <input type="text" name="item_note[]" placeholder="Additional info">
+                    </div>
+                </div>
+                <button type="button" class="btn btn-danger" onclick="removeItem(this)">Remove Item</button>
+            `;
+            container.appendChild(newItem);
+        }
+
+        function removeItem(button) {
+            const container = document.getElementById('itemsContainer');
+            if (container.children.length > 1) {
+                button.closest('.item-row').remove();
+            } else {
+                alert('You must have at least one item!');
+            }
+        }
+    </script>
+</body>
+</html>
+
