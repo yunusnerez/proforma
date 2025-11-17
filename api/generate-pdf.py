@@ -13,22 +13,24 @@ class PDF(FPDF):
     def __init__(self):
         super().__init__()
         self.set_auto_page_break(auto=True, margin=15)
-        # Unicode desteği için DejaVu fontunu kullan
+        # Unicode desteği için DejaVu fontunu kullan - ZORUNLU
         dejavu_path = os.path.join(os.path.dirname(__file__), 'DejaVuSans.ttf')
-        self.unicode_font = 'helvetica'  # Default
+        self.unicode_font = None
+        
         if os.path.exists(dejavu_path):
             try:
+                # Font'u ekle
                 self.add_font('DejaVu', '', dejavu_path, uni=True)
                 self.add_font('DejaVu', 'B', dejavu_path, uni=True)
                 self.add_font('DejaVu', 'I', dejavu_path, uni=True)
-                self.unicode_font = 'DejaVu'
-                # Font'u hemen test et
+                # Font'u test et
                 self.set_font('DejaVu', '', 12)
+                self.unicode_font = 'DejaVu'
             except Exception as e:
-                # Font yükleme hatası - helvetica kullan
-                self.unicode_font = 'helvetica'
+                # Font yükleme hatası - hata fırlat
+                raise Exception(f"DejaVu font yüklenemedi: {str(e)}")
         else:
-            self.unicode_font = 'helvetica'
+            raise Exception("DejaVu font dosyası bulunamadı")
     
     def _safe_text(self, text):
         """Türkçe karakterleri güvenli şekilde işle - Unicode desteği"""
@@ -37,11 +39,12 @@ class PDF(FPDF):
         return str(text)
     
     def _set_font(self, style='', size=12):
-        """Unicode font kullanarak font ayarla"""
+        """Unicode font kullanarak font ayarla - HER ZAMAN DejaVu"""
         if self.unicode_font == 'DejaVu':
             self.set_font('DejaVu', style, size)
         else:
-            self.set_font('helvetica', style, size)
+            # Eğer DejaVu yoksa hata ver
+            raise Exception("DejaVu font kullanılamıyor")
     
     def header(self):
         # Template image'ı ekle
@@ -53,56 +56,27 @@ class PDF(FPDF):
             self.rect(0, 0, 210, 297, 'F')
 
     def add_invoice(self, data):
-        # Invoice number ve date (sağ üst - template'de zaten başlık var)
+        # Invoice number ve date
         invoice_no = data.get('invoice_no', f"PRO-{int(os.urandom(4).hex(), 16) % 1000000:06d}")
         
-        # Billed By ve Billed To bölümleri - kutulu tasarım
+        # Billed By ve Billed To bölümleri - KUTUSUZ, sadece yazı (örnekteki gibi)
         self.set_y(65)
-        
-        # Billed By kutusu (sol)
         self.set_x(10)
-        self.set_draw_color(200, 200, 200)
-        self.set_line_width(0.3)
-        self.set_fill_color(250, 250, 250)
-        self.rect(10, 65, 90, 35, 'DF')  # D=draw, F=fill
+        self.set_draw_color(180)
+        self.set_line_width(0.2)
         
-        self.set_x(12)
-        self.set_y(67)
+        # Billed By (sol) - kutusuz
         self._set_font("B", 10)
         self.set_text_color(0)
-        self.cell(0, 6, "Billed By:", ln=1)
+        self.multi_cell(90, 5.5, f"Billed By:\n{self._safe_text(data['billed_by'])}", border=1)
         
-        self.set_x(12)
-        self._set_font("", 9)
-        self.set_text_color(50)
-        # Billed By bilgilerini parse et
-        billed_by_lines = self._safe_text(data['billed_by']).split('\n')
-        for line in billed_by_lines[:5]:  # Max 5 satır
-            if line.strip():
-                self.cell(0, 5, line.strip(), ln=1)
-        
-        # Billed To kutusu (sağ)
+        # Billed To (sağ) - kutusuz
         self.set_y(65)
         self.set_x(110)
-        self.rect(110, 65, 90, 35, 'DF')
+        self.multi_cell(90, 5.5, f"Billed To:\n{self._safe_text(data['billed_to'])}", border=1)
         
-        self.set_x(112)
-        self.set_y(67)
-        self._set_font("B", 10)
-        self.set_text_color(0)
-        self.cell(0, 6, "Billed To:", ln=1)
-        
-        self.set_x(112)
-        self._set_font("", 9)
-        self.set_text_color(50)
-        # Billed To bilgilerini parse et
-        billed_to_lines = self._safe_text(data['billed_to']).split('\n')
-        for line in billed_to_lines[:5]:  # Max 5 satır
-            if line.strip():
-                self.cell(0, 5, line.strip(), ln=1)
-        
-        # Invoice number ve date (kutuların altında)
-        self.set_y(105)
+        # Invoice number ve date
+        self.set_y(85)
         self.set_x(10)
         self._set_font("", 9)
         self.set_text_color(0)
@@ -111,11 +85,11 @@ class PDF(FPDF):
         self.cell(90, 8, f"Invoice Date: {data['invoice_date']}", ln=1)
         
         # Items table
-        self.set_y(120)
+        self.set_y(102)
         self.set_x(10)
-        self.set_fill_color(240, 240, 240)
-        self.set_text_color(0)
-        self._set_font("B", 10)
+        self.set_fill_color(225, 236, 247)
+        self.set_text_color(0, 51, 102)
+        self._set_font("B", 12)
         
         headers = ["Item"]
         if data.get("show_quantity", True):
@@ -125,13 +99,13 @@ class PDF(FPDF):
         if data.get("show_amount", True):
             headers.append("Amount")
 
-        col_widths = [100]
+        col_widths = [80]
         if data.get("show_quantity", True):
-            col_widths.append(25)
-        if data.get("show_rate", False):
             col_widths.append(30)
+        if data.get("show_rate", False):
+            col_widths.append(40)
         if data.get("show_amount", True):
-            col_widths.append(35)
+            col_widths.append(40)
 
         # Header row
         for header, width in zip(headers, col_widths):
@@ -139,7 +113,7 @@ class PDF(FPDF):
         self.ln()
 
         # Items rows
-        self._set_font("", 9)
+        self._set_font("", 11)
         self.set_text_color(0)
         total = 0.0
         for item in data.get("items", []):
@@ -154,7 +128,7 @@ class PDF(FPDF):
 
             col_idx = 1
             if data.get("show_quantity", True):
-                self.cell(col_widths[col_idx], 9, str(quantity), 1, 0, "C")
+                self.cell(col_widths[col_idx], 9, str(quantity), 1, 0, "R")
                 col_idx += 1
             if data.get("show_rate", False):
                 currency = data.get('currency', '£')
@@ -168,53 +142,43 @@ class PDF(FPDF):
 
             if note:
                 self.set_x(12)
-                self._set_font("I", 8)
-                self.set_text_color(100)
-                self.multi_cell(sum(col_widths) - 4, 5, self._safe_text(note))
-                self._set_font("", 9)
+                self._set_font("I", 10)
+                self.set_text_color(90)
+                self.multi_cell(sum(col_widths), 6, self._safe_text(note))
+                self._set_font("", 11)
                 self.set_text_color(0)
 
-        # Summary section - kutulu tasarım
-        summary_y = self.get_y() + 5
-        summary_width = sum(col_widths)
-        
-        # Summary kutusu
+        # Summary section - tablo formatında (örnekteki gibi)
+        summary_y = self.get_y() + 3
         self.set_y(summary_y)
         self.set_x(10)
-        self.set_draw_color(200, 200, 200)
-        self.set_line_width(0.3)
-        self.set_fill_color(250, 250, 250)
-        self.rect(10, summary_y, summary_width, 30, 'DF')
         
-        self.set_x(12)
-        self.set_y(summary_y + 3)
-        
-        # Total, Deposit, Remaining
-        self._set_font("B", 10)
-        self.cell(60, 8, "Total:", 0, 0, "L")
         currency = data.get('currency', '£')
-        self.cell(summary_width - 72, 8, f"{currency}{total:,.2f}", 0, 1, "R")
-        
         deposit = data.get("deposit", 0.0)
         remaining = total - deposit
         
-        self.set_x(12)
-        self._set_font("", 9)
-        self.cell(60, 8, "Deposit:", 0, 0, "L")
-        self.cell(summary_width - 72, 8, f"{currency}{deposit:,.2f}", 0, 1, "R")
+        # Total, Deposit, Remaining - tablo formatında
+        self._set_font("B", 12)
+        self.cell(sum(col_widths[:-1]), 10, "Total", 1)
+        self.cell(col_widths[-1], 10, f"{currency}{total:,.2f}", 1, 1, "R")
         
-        self.set_x(12)
-        self._set_font("B", 10)
-        self.cell(60, 8, "Remaining:", 0, 0, "L")
-        self.cell(summary_width - 72, 8, f"{currency}{remaining:,.2f}", 0, 1, "R")
+        self._set_font("", 11)
+        self.set_x(10)
+        self.cell(sum(col_widths[:-1]), 10, "Deposit", 1)
+        self.cell(col_widths[-1], 10, f"{currency}{deposit:,.2f}", 1, 1, "R")
+        
+        self._set_font("B", 12)
+        self.set_x(10)
+        self.cell(sum(col_widths[:-1]), 10, "Remaining", 1)
+        self.cell(col_widths[-1], 10, f"{currency}{remaining:,.2f}", 1, 1, "R")
 
         # Cash note
         if data.get("cash_note"):
-            self.set_y(summary_y + 35)
+            self._set_font("I", 10)
+            self.set_text_color(120)
+            self.set_y(self.get_y() + 3)
             self.set_x(10)
-            self._set_font("I", 9)
-            self.set_text_color(100)
-            self.multi_cell(0, 5, self._safe_text(data["cash_note"]))
+            self.cell(0, 10, self._safe_text(data["cash_note"]), ln=True)
             self.set_text_color(0)
 
 class handler(BaseHTTPRequestHandler):
