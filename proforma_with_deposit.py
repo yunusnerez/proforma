@@ -19,7 +19,7 @@ invoice_data = {
     "title": "Invoice",
     "invoice_date": "2025-09-08",
     "billed_by": "You Clinic\nTurkey",
-    "billed_to": "Maryam Ilyas\nUnited Kingdom",
+    "billed_to": "deneme\nUnited Kingdom",
     "cash_note": "Payment is done in cash",
     "items": [
         {
