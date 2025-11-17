@@ -257,6 +257,9 @@ def generate_pdf():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# Vercel için handler export
+handler = app
+
 if __name__ == '__main__':
     # Gerekli klasörleri oluştur
     os.makedirs("templates", exist_ok=True)
