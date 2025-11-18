@@ -126,19 +126,19 @@ class PDF(FPDF):
         
         # Billed To içeriği - SAĞ KUTU, SAĞ HİZALI, manuel y pozisyonu
         current_y = box_y + 2
-        self.set_x(right_box_x)
+        self.set_x(right_box_x + 2)
         self.set_y(current_y)
         self.set_font("helvetica", "B", 12)
         self.set_text_color(0)
         self.cell(box_width - 4, header_height, "Billed To:", ln=0, align="R")
         
         current_y += header_height
-        self.set_x(right_box_x)
+        self.set_x(right_box_x + 2)
         self.set_y(current_y)
         self.set_font("helvetica", "", 10)
         self.set_text_color(50)
         for i, line in enumerate(billed_to_lines):
-            self.set_x(right_box_x)
+            self.set_x(right_box_x + 2)
             self.set_y(current_y)
             self.cell(box_width - 4, line_height, line, ln=0, align="R")
             current_y += line_height
