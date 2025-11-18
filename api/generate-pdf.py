@@ -246,10 +246,12 @@ class PDF(FPDF):
         self.set_text_color(60)
         self.cell(summary_width, 8, f"Deposit: {self._format_currency(currency, deposit)}", 0, 1, "R")
         
-        self.set_x(summary_x)
-        self.set_font("helvetica", "B", 12)
-        self.set_text_color(0)
-        self.cell(summary_width, 8, f"Remaining: {self._format_currency(currency, remaining)}", 0, 1, "R")
+        # Remaining kısmı opsiyonel - varsayılan olarak gösterilir
+        if data.get("show_remaining", True):
+            self.set_x(summary_x)
+            self.set_font("helvetica", "B", 12)
+            self.set_text_color(0)
+            self.cell(summary_width, 8, f"Remaining: {self._format_currency(currency, remaining)}", 0, 1, "R")
 
         # Cash note - Summary'nin altında
         if data.get("cash_note"):
