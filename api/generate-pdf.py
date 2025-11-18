@@ -120,19 +120,24 @@ class PDF(FPDF):
         bubble_width = 55  # Boşluğun yaklaşık genişliği
         
         current_y = start_y
-        self.set_x(bubble_x)
-        self.set_y(current_y)
+        self.set_xy(bubble_x, current_y)  # Koordinata git
         self.set_font("helvetica", "B", 12)
         self.set_text_color(0)
-        self.cell(bubble_width, header_height, "Billed To:", ln=0, align="C")
+        # align="L" yapıyoruz ki kutunun içinde sola yaslı dursun
+        self.cell(bubble_width, header_height, "Billed To:", ln=0, align="L")
         
         current_y += header_height
         self.set_font("helvetica", "", 10)
         self.set_text_color(50)
+        
         for i, line in enumerate(billed_to_lines):
-            self.set_x(bubble_x)
-            self.set_y(current_y)
-            self.cell(bubble_width, line_height, line, ln=0, align="C")
+            # KRİTİK GÜNCELLEME: Her satırı yazmadan önce imleci tekrar sağa (125'e) çekiyoruz
+            self.set_xy(bubble_x, current_y)
+            
+            # border=0 (çizgi yok), align="L" (sola yaslı)
+            self.cell(bubble_width, line_height, line, ln=0, align="L")
+            
+            # Manuel olarak bir alt satıra iniyoruz
             current_y += line_height
         
         # max_height'ı güncelle
