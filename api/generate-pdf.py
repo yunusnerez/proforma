@@ -77,66 +77,63 @@ class PDF(FPDF):
         self.set_text_color(0)
 
         # Billed By ve Billed To - yan yana, border ile, aynı yükseklikte
-        # Önce yüksekliği hesapla
         billed_by_content = self._safe_text(data['billed_by'])
         billed_to_content = self._safe_text(data['billed_to'])
         
-        # Satır sayılarını hesapla (başlık + içerik)
+        # Satır sayılarını hesapla
         billed_by_lines = billed_by_content.split('\n')
         billed_to_lines = billed_to_content.split('\n')
         
         # En uzun olanı bul (başlık dahil)
         max_lines = max(len(billed_by_lines), len(billed_to_lines)) + 1  # +1 for "Billed By:" / "Billed To:"
         
-        # Yüksekliği hesapla - daha büyük font için
-        line_height = 6.5  # Font büyüdüğü için satır yüksekliği de arttı
+        # Yüksekliği hesapla
+        line_height = 6.5
         box_height = max_lines * line_height + 4  # +4 padding
         
-        # Billed By kutusu (sol) - aynı yükseklikte
         box_y = 65
-        self.set_y(box_y)
-        self.set_x(10)
+        box_width = 90
+        left_box_x = 10
+        right_box_x = 110
+        
         self.set_draw_color(180)
         self.set_line_width(0.2)
-        self.rect(10, box_y, 90, box_height, 'D')  # Sadece border
         
-        # Billed By içeriği - daha büyük ve kalın font
-        self.set_x(12)
+        # Billed By kutusu (SOL) - border çiz
+        self.rect(left_box_x, box_y, box_width, box_height, 'D')
+        
+        # Billed By içeriği - SOL KUTU, SOL HİZALI
+        self.set_x(left_box_x + 2)
         self.set_y(box_y + 2)
-        self.set_font("helvetica", "B", 12)  # Daha büyük ve kalın
+        self.set_font("helvetica", "B", 12)
         self.set_text_color(0)
-        self.cell(86, 7, "Billed By:", ln=1)
+        self.cell(box_width - 4, 7, "Billed By:", ln=1, align="L")
         
-        self.set_x(12)
-        self.set_font("helvetica", "", 10)  # İçerik için biraz daha büyük
+        self.set_x(left_box_x + 2)
+        self.set_font("helvetica", "", 10)
         self.set_text_color(50)
-        for line in billed_by_lines[:6]:  # Max 6 satır
+        for line in billed_by_lines[:6]:
             if line.strip():
-                self.cell(86, 6, line.strip(), ln=1)
+                self.cell(box_width - 4, 6, line.strip(), ln=1, align="L")
         
-        # Billed To kutusu (sağ) - aynı yükseklikte
-        self.set_y(box_y)
-        self.set_x(110)
-        self.rect(110, box_y, 90, box_height, 'D')  # Sadece border, aynı yükseklik
+        # Billed To kutusu (SAĞ) - border çiz, AYNI YÜKSEKLİKTE
+        self.rect(right_box_x, box_y, box_width, box_height, 'D')
         
-        # Billed To içeriği - daha büyük ve kalın font, doğru hizalama (SAĞ KUTU)
-        self.set_x(110)  # Sağ kutunun başlangıcı
+        # Billed To içeriği - SAĞ KUTU, SAĞ HİZALI
+        # Sağ hizalama için: x pozisyonu + genişlik = sağ kenar
+        self.set_x(right_box_x)
         self.set_y(box_y + 2)
-        self.set_font("helvetica", "B", 12)  # Daha büyük ve kalın
+        self.set_font("helvetica", "B", 12)
         self.set_text_color(0)
-        # Başlık sağ hizalı
-        self.cell(86, 7, "Billed To:", ln=1, align="R")
+        self.cell(box_width - 4, 7, "Billed To:", ln=1, align="R")
         
-        # İçerik satırları - her satırı sağ hizalı yaz
-        self.set_font("helvetica", "", 10)  # İçerik için biraz daha büyük
+        self.set_x(right_box_x)
+        self.set_font("helvetica", "", 10)
         self.set_text_color(50)
-        current_y = box_y + 9  # Başlıktan sonra
-        for line in billed_to_lines[:6]:  # Max 6 satır
+        for line in billed_to_lines[:6]:
             if line.strip():
-                self.set_x(110)  # Sağ kutunun başlangıcı
-                self.set_y(current_y)
-                self.cell(86, 6, line.strip(), ln=1, align="R")  # ln=1 ile yeni satıra geç
-                current_y += 6
+                # Sağ hizalama için cell genişliği box_width - 4, align="R"
+                self.cell(box_width - 4, 6, line.strip(), ln=1, align="R")
         
         # max_height'ı güncelle
         max_height = box_height
