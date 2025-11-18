@@ -119,28 +119,27 @@ class PDF(FPDF):
         # Sayfanın sağ tarafına hizalamak için x pozisyonunu hesapla
         page_width = 210  # A4 genişliği
         right_margin = 10
+        right_content_width = 90  # Sağ taraf için sabit genişlik
+        
+        # Sağ taraf x pozisyonu: sayfa genişliği - margin - içerik genişliği
+        right_x = page_width - right_margin - right_content_width  # 210 - 10 - 90 = 110
         
         current_y = start_y
+        self.set_x(right_x)
+        self.set_y(current_y)
         self.set_font("helvetica", "B", 12)
         self.set_text_color(0)
-        # "Billed To:" metninin genişliğini hesapla ve sağa hizala
-        header_text = "Billed To:"
-        header_width = self.get_string_width(header_text)
-        header_x = page_width - right_margin - header_width
-        self.set_x(header_x)
-        self.set_y(current_y)
-        self.cell(header_width, header_height, header_text, ln=0, align="L")
+        self.cell(right_content_width, header_height, "Billed To:", ln=0, align="R")
         
         current_y += header_height
+        self.set_x(right_x)
+        self.set_y(current_y)
         self.set_font("helvetica", "", 10)
         self.set_text_color(50)
         for i, line in enumerate(billed_to_lines):
-            # Her satırın genişliğini hesapla ve sağa hizala
-            line_width = self.get_string_width(line)
-            line_x = page_width - right_margin - line_width
-            self.set_x(line_x)
+            self.set_x(right_x)
             self.set_y(current_y)
-            self.cell(line_width, line_height, line, ln=0, align="L")
+            self.cell(right_content_width, line_height, line, ln=0, align="R")
             current_y += line_height
         
         # max_height'ı güncelle
