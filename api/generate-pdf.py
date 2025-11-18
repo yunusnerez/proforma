@@ -76,7 +76,7 @@ class PDF(FPDF):
         self.set_font("helvetica", "", 11)
         self.set_text_color(0)
 
-        # Billed By ve Billed To - yan yana, border ile, aynı yükseklikte
+        # Billed By ve Billed To - border olmadan
         billed_by_content = self._safe_text(data['billed_by'])
         billed_to_content = self._safe_text(data['billed_to'])
         
@@ -84,67 +84,57 @@ class PDF(FPDF):
         billed_by_lines = [line.strip() for line in billed_by_content.split('\n') if line.strip()][:6]
         billed_to_lines = [line.strip() for line in billed_to_content.split('\n') if line.strip()][:6]
         
-        # En uzun olanı bul (başlık + içerik satırları)
-        max_content_lines = max(len(billed_by_lines), len(billed_to_lines))
-        max_lines = max_content_lines + 1  # +1 for "Billed By:" / "Billed To:" başlığı
-        
         # Yüksekliği hesapla
         header_height = 7
         line_height = 6
-        box_height = header_height + (max_content_lines * line_height) + 4  # +4 padding
+        max_content_lines = max(len(billed_by_lines), len(billed_to_lines))
+        content_height = header_height + (max_content_lines * line_height)
         
-        box_y = 65
-        box_width = 90
-        left_box_x = 10
-        right_box_x = 110
+        start_y = 65
+        left_x = 10
+        right_x = 110
+        content_width = 90
         
-        self.set_draw_color(180)
-        self.set_line_width(0.2)
-        
-        # Her iki kutuya da AYNI YÜKSEKLİKTE border çiz
-        self.rect(left_box_x, box_y, box_width, box_height, 'D')
-        self.rect(right_box_x, box_y, box_width, box_height, 'D')
-        
-        # Billed By içeriği - SOL KUTU, SOL HİZALI, manuel y pozisyonu
-        current_y = box_y + 2
-        self.set_x(left_box_x + 2)
+        # Billed By içeriği - SOL TARAF, SOL HİZALI
+        current_y = start_y
+        self.set_x(left_x)
         self.set_y(current_y)
         self.set_font("helvetica", "B", 12)
         self.set_text_color(0)
-        self.cell(box_width - 4, header_height, "Billed By:", ln=0, align="L")
+        self.cell(content_width, header_height, "Billed By:", ln=0, align="L")
         
         current_y += header_height
-        self.set_x(left_box_x + 2)
+        self.set_x(left_x)
         self.set_y(current_y)
         self.set_font("helvetica", "", 10)
         self.set_text_color(50)
         for i, line in enumerate(billed_by_lines):
-            self.set_x(left_box_x + 2)
+            self.set_x(left_x)
             self.set_y(current_y)
-            self.cell(box_width - 4, line_height, line, ln=0, align="L")
+            self.cell(content_width, line_height, line, ln=0, align="L")
             current_y += line_height
         
-        # Billed To içeriği - SAĞ KUTU, SAĞ HİZALI, manuel y pozisyonu
-        current_y = box_y + 2
-        self.set_x(right_box_x + 2)
+        # Billed To içeriği - SAĞ TARAF, SAĞ HİZALI
+        current_y = start_y
+        self.set_x(right_x)
         self.set_y(current_y)
         self.set_font("helvetica", "B", 12)
         self.set_text_color(0)
-        self.cell(box_width - 4, header_height, "Billed To:", ln=0, align="R")
+        self.cell(content_width, header_height, "Billed To:", ln=0, align="R")
         
         current_y += header_height
-        self.set_x(right_box_x + 2)
+        self.set_x(right_x)
         self.set_y(current_y)
         self.set_font("helvetica", "", 10)
         self.set_text_color(50)
         for i, line in enumerate(billed_to_lines):
-            self.set_x(right_box_x + 2)
+            self.set_x(right_x)
             self.set_y(current_y)
-            self.cell(box_width - 4, line_height, line, ln=0, align="R")
+            self.cell(content_width, line_height, line, ln=0, align="R")
             current_y += line_height
         
         # max_height'ı güncelle
-        max_height = box_height
+        max_height = content_height
 
         # Invoice number ve date - dinamik pozisyon (Billed By/To'nun altına)
         invoice_y = 65 + max_height + 5  # Billed By/To'nun altına 5mm boşluk
