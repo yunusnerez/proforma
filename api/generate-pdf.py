@@ -80,16 +80,18 @@ class PDF(FPDF):
         billed_by_content = self._safe_text(data['billed_by'])
         billed_to_content = self._safe_text(data['billed_to'])
         
-        # Satır sayılarını hesapla
-        billed_by_lines = billed_by_content.split('\n')
-        billed_to_lines = billed_to_content.split('\n')
+        # Satır sayılarını hesapla (sadece boş olmayan satırlar)
+        billed_by_lines = [line.strip() for line in billed_by_content.split('\n') if line.strip()][:6]
+        billed_to_lines = [line.strip() for line in billed_to_content.split('\n') if line.strip()][:6]
         
-        # En uzun olanı bul (başlık dahil)
-        max_lines = max(len(billed_by_lines), len(billed_to_lines)) + 1  # +1 for "Billed By:" / "Billed To:"
+        # En uzun olanı bul (başlık + içerik satırları)
+        max_content_lines = max(len(billed_by_lines), len(billed_to_lines))
+        max_lines = max_content_lines + 1  # +1 for "Billed By:" / "Billed To:" başlığı
         
         # Yüksekliği hesapla
-        line_height = 6.5
-        box_height = max_lines * line_height + 4  # +4 padding
+        header_height = 7
+        line_height = 6
+        box_height = header_height + (max_content_lines * line_height) + 4  # +4 padding
         
         box_y = 65
         box_width = 90
@@ -99,41 +101,47 @@ class PDF(FPDF):
         self.set_draw_color(180)
         self.set_line_width(0.2)
         
-        # Billed By kutusu (SOL) - border çiz
+        # Her iki kutuya da AYNI YÜKSEKLİKTE border çiz
         self.rect(left_box_x, box_y, box_width, box_height, 'D')
-        
-        # Billed By içeriği - SOL KUTU, SOL HİZALI
-        self.set_x(left_box_x + 2)
-        self.set_y(box_y + 2)
-        self.set_font("helvetica", "B", 12)
-        self.set_text_color(0)
-        self.cell(box_width - 4, 7, "Billed By:", ln=1, align="L")
-        
-        self.set_x(left_box_x + 2)
-        self.set_font("helvetica", "", 10)
-        self.set_text_color(50)
-        for line in billed_by_lines[:6]:
-            if line.strip():
-                self.cell(box_width - 4, 6, line.strip(), ln=1, align="L")
-        
-        # Billed To kutusu (SAĞ) - border çiz, AYNI YÜKSEKLİKTE
         self.rect(right_box_x, box_y, box_width, box_height, 'D')
         
-        # Billed To içeriği - SAĞ KUTU, SAĞ HİZALI
-        # Sağ hizalama için: x pozisyonu + genişlik = sağ kenar
-        self.set_x(right_box_x)
-        self.set_y(box_y + 2)
+        # Billed By içeriği - SOL KUTU, SOL HİZALI, manuel y pozisyonu
+        current_y = box_y + 2
+        self.set_x(left_box_x + 2)
+        self.set_y(current_y)
         self.set_font("helvetica", "B", 12)
         self.set_text_color(0)
-        self.cell(box_width - 4, 7, "Billed To:", ln=1, align="R")
+        self.cell(box_width - 4, header_height, "Billed By:", ln=0, align="L")
         
-        self.set_x(right_box_x)
+        current_y += header_height
+        self.set_x(left_box_x + 2)
+        self.set_y(current_y)
         self.set_font("helvetica", "", 10)
         self.set_text_color(50)
-        for line in billed_to_lines[:6]:
-            if line.strip():
-                # Sağ hizalama için cell genişliği box_width - 4, align="R"
-                self.cell(box_width - 4, 6, line.strip(), ln=1, align="R")
+        for i, line in enumerate(billed_by_lines):
+            self.set_x(left_box_x + 2)
+            self.set_y(current_y)
+            self.cell(box_width - 4, line_height, line, ln=0, align="L")
+            current_y += line_height
+        
+        # Billed To içeriği - SAĞ KUTU, SAĞ HİZALI, manuel y pozisyonu
+        current_y = box_y + 2
+        self.set_x(right_box_x)
+        self.set_y(current_y)
+        self.set_font("helvetica", "B", 12)
+        self.set_text_color(0)
+        self.cell(box_width - 4, header_height, "Billed To:", ln=0, align="R")
+        
+        current_y += header_height
+        self.set_x(right_box_x)
+        self.set_y(current_y)
+        self.set_font("helvetica", "", 10)
+        self.set_text_color(50)
+        for i, line in enumerate(billed_to_lines):
+            self.set_x(right_box_x)
+            self.set_y(current_y)
+            self.cell(box_width - 4, line_height, line, ln=0, align="R")
+            current_y += line_height
         
         # max_height'ı güncelle
         max_height = box_height
