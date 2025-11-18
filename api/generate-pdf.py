@@ -77,18 +77,37 @@ class PDF(FPDF):
         self.set_text_color(0)
 
         # Billed By ve Billed To - yan yana, border ile
+        # Önce yüksekliği hesapla
+        billed_by_text = f"Billed By:\n{self._safe_text(data['billed_by'])}"
+        billed_to_text = f"Billed To:\n{self._safe_text(data['billed_to'])}"
+        
+        # Geçici olarak yüksekliği hesapla
+        self.set_font("helvetica", "", 11)
+        billed_by_lines = billed_by_text.split('\n')
+        billed_to_lines = billed_to_text.split('\n')
+        
+        # Her satır için yükseklik hesapla (başlık + içerik)
+        line_height = 5.5
+        billed_by_height = len(billed_by_lines) * line_height + 2  # +2 padding
+        billed_to_height = len(billed_to_lines) * line_height + 2
+        
+        # En yüksek olanı kullan
+        max_height = max(billed_by_height, billed_to_height)
+        
+        # Billed By ve Billed To - yan yana, border ile
         self.set_y(65)
         self.set_x(10)
         self.set_draw_color(180)
         self.set_line_width(0.2)
-        self.multi_cell(90, 5.5, f"Billed By:\n{self._safe_text(data['billed_by'])}", border=1)
+        self.multi_cell(90, 5.5, billed_by_text, border=1)
 
         self.set_y(65)
         self.set_x(110)
-        self.multi_cell(90, 5.5, f"Billed To:\n{self._safe_text(data['billed_to'])}", border=1)
+        self.multi_cell(90, 5.5, billed_to_text, border=1)
 
-        # Invoice number ve date
-        self.set_y(85)
+        # Invoice number ve date - dinamik pozisyon (Billed By/To'nun altına)
+        invoice_y = 65 + max_height + 5  # Billed By/To'nun altına 5mm boşluk
+        self.set_y(invoice_y)
         self.set_x(10)
         
         # Invoice number - generate basit bir unique number
@@ -98,8 +117,9 @@ class PDF(FPDF):
         self.set_x(110)
         self.cell(90, 8, f"Invoice Date: {data['invoice_date']}", ln=1)
 
-        # Items table
-        self.set_y(102)
+        # Items table - dinamik pozisyon (Invoice No/Date'in altına)
+        items_y = invoice_y + 12  # Invoice No/Date'in altına 12mm boşluk
+        self.set_y(items_y)
         self.set_x(10)
         self.set_fill_color(225, 236, 247)
         self.set_text_color(0, 51, 102)
