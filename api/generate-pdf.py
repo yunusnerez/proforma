@@ -119,8 +119,8 @@ class PDF(FPDF):
         self.set_x(110)
         self.rect(110, box_y, 90, box_height, 'D')  # Sadece border, aynı yükseklik
         
-        # Billed To içeriği - daha büyük ve kalın font, doğru hizalama
-        self.set_x(112)
+        # Billed To içeriği - daha büyük ve kalın font, doğru hizalama (SAĞ KUTU)
+        self.set_x(110)  # Sağ kutunun başlangıcı
         self.set_y(box_y + 2)
         self.set_font("helvetica", "B", 12)  # Daha büyük ve kalın
         self.set_text_color(0)
@@ -133,9 +133,9 @@ class PDF(FPDF):
         current_y = box_y + 9  # Başlıktan sonra
         for line in billed_to_lines[:6]:  # Max 6 satır
             if line.strip():
-                self.set_x(112)
+                self.set_x(110)  # Sağ kutunun başlangıcı
                 self.set_y(current_y)
-                self.cell(86, 6, line.strip(), ln=0, align="R")
+                self.cell(86, 6, line.strip(), ln=1, align="R")  # ln=1 ile yeni satıra geç
                 current_y += 6
         
         # max_height'ı güncelle
@@ -218,16 +218,15 @@ class PDF(FPDF):
                 self.set_font("helvetica", "", 11)
                 self.set_text_color(0)
 
-        # Summary section - SAĞ ALTTA, items tablosundan ayrı
+        # Summary section - SAĞ ALTTA, items tablosunun bittiği yerden itibaren
         deposit = data.get("deposit", 0.0)
         remaining = total - deposit
         
         # Items tablosunun bitiş pozisyonunu al
         items_end_y = self.get_y()
         
-        # Summary'yi sağ altta yerleştir - items tablosundan ayrı
-        # Eğer items tablosu çok uzunsa, sayfanın altına yakın yerleştir
-        summary_start_y = max(items_end_y + 15, 240)  # En az 15mm boşluk veya sayfa altına yakın
+        # Summary'yi items tablosunun bittiği yerden itibaren sağ altta yerleştir
+        summary_start_y = items_end_y + 10  # Items tablosundan 10mm boşluk
         summary_x = 110  # Sağ taraf
         summary_width = 90
         
