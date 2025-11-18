@@ -17,9 +17,9 @@ export default function Home() {
   const [formData, setFormData] = useState({
     title: 'Invoice',
     invoice_date: new Date().toISOString().split('T')[0],
-    billed_by: 'You Clinic\nTurkey',
+    billed_by: 'You Clinic\nTurkey\nKazimdirik Mah. 296. Sok. No: 8 D:315\nIzmir, Turkey',
     billed_to: '',
-    cash_note: 'Payment is done in cash',
+    cash_note: 'Payment will be done in cash',
     currency: '£',
     show_quantity: true,
     show_rate: false,
@@ -29,7 +29,7 @@ export default function Home() {
       {
         item: 'Autism Treatment Package',
         quantity: 1,
-        rate: 8280.00,
+        rate: 0,
         note: ''
       }
     ] as InvoiceItem[]
