@@ -24,6 +24,7 @@ export default function Home() {
     show_quantity: true,
     show_rate: false,
     show_amount: true,
+    show_remaining: true,
     deposit: 0,
     items: [
       {
@@ -39,7 +40,7 @@ export default function Home() {
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'deposit' || name === 'show_quantity' || name === 'show_rate' || name === 'show_amount'
+      [name]: name === 'deposit' || name === 'show_quantity' || name === 'show_rate' || name === 'show_amount' || name === 'show_remaining'
         ? name.startsWith('show_') ? (e.target as HTMLInputElement).checked : parseFloat(value) || 0
         : value
     }))
@@ -225,6 +226,15 @@ export default function Home() {
               onChange={handleInputChange}
             />
             Show Amount
+          </label>
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              name="show_remaining"
+              checked={formData.show_remaining}
+              onChange={handleInputChange}
+            />
+            Show Remaining
           </label>
         </div>
 
