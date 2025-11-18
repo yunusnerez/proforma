@@ -76,34 +76,65 @@ class PDF(FPDF):
         self.set_font("helvetica", "", 11)
         self.set_text_color(0)
 
-        # Billed By ve Billed To - yan yana, border ile
+        # Billed By ve Billed To - yan yana, border ile, aynı yükseklikte
         # Önce yüksekliği hesapla
-        billed_by_text = f"Billed By:\n{self._safe_text(data['billed_by'])}"
-        billed_to_text = f"Billed To:\n{self._safe_text(data['billed_to'])}"
+        billed_by_content = self._safe_text(data['billed_by'])
+        billed_to_content = self._safe_text(data['billed_to'])
         
-        # Geçici olarak yüksekliği hesapla
-        self.set_font("helvetica", "", 11)
-        billed_by_lines = billed_by_text.split('\n')
-        billed_to_lines = billed_to_text.split('\n')
+        # Satır sayılarını hesapla (başlık + içerik)
+        billed_by_lines = billed_by_content.split('\n')
+        billed_to_lines = billed_to_content.split('\n')
         
-        # Her satır için yükseklik hesapla (başlık + içerik)
-        line_height = 5.5
-        billed_by_height = len(billed_by_lines) * line_height + 2  # +2 padding
-        billed_to_height = len(billed_to_lines) * line_height + 2
+        # En uzun olanı bul (başlık dahil)
+        max_lines = max(len(billed_by_lines), len(billed_to_lines)) + 1  # +1 for "Billed By:" / "Billed To:"
         
-        # En yüksek olanı kullan
-        max_height = max(billed_by_height, billed_to_height)
+        # Yüksekliği hesapla - daha büyük font için
+        line_height = 6.5  # Font büyüdüğü için satır yüksekliği de arttı
+        box_height = max_lines * line_height + 4  # +4 padding
         
-        # Billed By ve Billed To - yan yana, border ile
-        self.set_y(65)
+        # Billed By kutusu (sol) - aynı yükseklikte
+        box_y = 65
+        self.set_y(box_y)
         self.set_x(10)
         self.set_draw_color(180)
         self.set_line_width(0.2)
-        self.multi_cell(90, 5.5, billed_by_text, border=1)
-
-        self.set_y(65)
+        self.rect(10, box_y, 90, box_height, 'D')  # Sadece border
+        
+        # Billed By içeriği - daha büyük ve kalın font
+        self.set_x(12)
+        self.set_y(box_y + 2)
+        self.set_font("helvetica", "B", 12)  # Daha büyük ve kalın
+        self.set_text_color(0)
+        self.cell(86, 7, "Billed By:", ln=1)
+        
+        self.set_x(12)
+        self.set_font("helvetica", "", 10)  # İçerik için biraz daha büyük
+        self.set_text_color(50)
+        for line in billed_by_lines[:6]:  # Max 6 satır
+            if line.strip():
+                self.cell(86, 6, line.strip(), ln=1)
+        
+        # Billed To kutusu (sağ) - aynı yükseklikte
+        self.set_y(box_y)
         self.set_x(110)
-        self.multi_cell(90, 5.5, billed_to_text, border=1)
+        self.rect(110, box_y, 90, box_height, 'D')  # Sadece border, aynı yükseklik
+        
+        # Billed To içeriği - daha büyük ve kalın font
+        self.set_x(112)
+        self.set_y(box_y + 2)
+        self.set_font("helvetica", "B", 12)  # Daha büyük ve kalın
+        self.set_text_color(0)
+        self.cell(86, 7, "Billed To:", ln=1, align="R")
+        
+        self.set_x(112)
+        self.set_font("helvetica", "", 10)  # İçerik için biraz daha büyük
+        self.set_text_color(50)
+        for line in billed_to_lines[:6]:  # Max 6 satır
+            if line.strip():
+                self.cell(86, 6, line.strip(), ln=1, align="R")
+        
+        # max_height'ı güncelle
+        max_height = box_height
 
         # Invoice number ve date - dinamik pozisyon (Billed By/To'nun altına)
         invoice_y = 65 + max_height + 5  # Billed By/To'nun altına 5mm boşluk
