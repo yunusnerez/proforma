@@ -115,31 +115,24 @@ class PDF(FPDF):
             self.cell(content_width, line_height, line, ln=0, align="L")
             current_y += line_height
         
-        # Billed To içeriği - SAĞ TARAF, SAĞ HİZALI
-        # Sayfanın sağ tarafına hizalamak için x pozisyonunu hesapla
-        page_width = 210  # A4 genişliği
-        right_margin = 10
-        right_content_width = 90  # Sağ taraf için sabit genişlik
-        
-        # Sağ taraf x pozisyonu: sayfa genişliği - margin - içerik genişliği
-        right_x = page_width - right_margin - right_content_width  # 210 - 10 - 90 = 110
+        # Billed To içeriği - template'teki sağdaki boşluğa ortalanmış şekilde
+        bubble_x = 125  # Template'teki sağdaki boşluğun başlangıç x değeri
+        bubble_width = 55  # Boşluğun yaklaşık genişliği
         
         current_y = start_y
-        self.set_x(right_x)
+        self.set_x(bubble_x)
         self.set_y(current_y)
         self.set_font("helvetica", "B", 12)
         self.set_text_color(0)
-        self.cell(right_content_width, header_height, "Billed To:", ln=0, align="R")
+        self.cell(bubble_width, header_height, "Billed To:", ln=0, align="C")
         
         current_y += header_height
-        self.set_x(right_x)
-        self.set_y(current_y)
         self.set_font("helvetica", "", 10)
         self.set_text_color(50)
         for i, line in enumerate(billed_to_lines):
-            self.set_x(right_x)
+            self.set_x(bubble_x)
             self.set_y(current_y)
-            self.cell(right_content_width, line_height, line, ln=0, align="R")
+            self.cell(bubble_width, line_height, line, ln=0, align="C")
             current_y += line_height
         
         # max_height'ı güncelle
