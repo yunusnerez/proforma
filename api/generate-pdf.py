@@ -119,19 +119,24 @@ class PDF(FPDF):
         self.set_x(110)
         self.rect(110, box_y, 90, box_height, 'D')  # Sadece border, aynı yükseklik
         
-        # Billed To içeriği - daha büyük ve kalın font
+        # Billed To içeriği - daha büyük ve kalın font, doğru hizalama
         self.set_x(112)
         self.set_y(box_y + 2)
         self.set_font("helvetica", "B", 12)  # Daha büyük ve kalın
         self.set_text_color(0)
+        # Başlık sağ hizalı
         self.cell(86, 7, "Billed To:", ln=1, align="R")
         
-        self.set_x(112)
+        # İçerik satırları - her satırı sağ hizalı yaz
         self.set_font("helvetica", "", 10)  # İçerik için biraz daha büyük
         self.set_text_color(50)
+        current_y = box_y + 9  # Başlıktan sonra
         for line in billed_to_lines[:6]:  # Max 6 satır
             if line.strip():
-                self.cell(86, 6, line.strip(), ln=1, align="R")
+                self.set_x(112)
+                self.set_y(current_y)
+                self.cell(86, 6, line.strip(), ln=0, align="R")
+                current_y += 6
         
         # max_height'ı güncelle
         max_height = box_height
@@ -213,32 +218,44 @@ class PDF(FPDF):
                 self.set_font("helvetica", "", 11)
                 self.set_text_color(0)
 
-        # Summary section - tablo formatında (orijinal)
-        self.set_font("helvetica", "B", 12)
-        self.set_x(10)
-        self.cell(sum(col_widths[:-1]), 10, "Total", 1)
-        self.cell(col_widths[-1], 10, self._format_currency(currency, total), 1, 1, "R")
-
+        # Summary section - SAĞ ALTTA, items tablosundan ayrı
         deposit = data.get("deposit", 0.0)
         remaining = total - deposit
-
-        self.set_font("helvetica", "", 11)
-        self.set_x(10)
-        self.cell(sum(col_widths[:-1]), 10, "Deposit", 1)
-        self.cell(col_widths[-1], 10, self._format_currency(currency, deposit), 1, 1, "R")
-
+        
+        # Items tablosunun bitiş pozisyonunu al
+        items_end_y = self.get_y()
+        
+        # Summary'yi sağ altta yerleştir - items tablosundan ayrı
+        # Eğer items tablosu çok uzunsa, sayfanın altına yakın yerleştir
+        summary_start_y = max(items_end_y + 15, 240)  # En az 15mm boşluk veya sayfa altına yakın
+        summary_x = 110  # Sağ taraf
+        summary_width = 90
+        
+        self.set_y(summary_start_y)
+        self.set_x(summary_x)
+        
+        # Summary - sağ hizalı, items tablosundan ayrı
         self.set_font("helvetica", "B", 12)
-        self.set_x(10)
-        self.cell(sum(col_widths[:-1]), 10, "Remaining", 1)
-        self.cell(col_widths[-1], 10, self._format_currency(currency, remaining), 1, 1, "R")
+        self.set_text_color(0)
+        self.cell(summary_width, 8, f"Total: {self._format_currency(currency, total)}", 0, 1, "R")
+        
+        self.set_x(summary_x)
+        self.set_font("helvetica", "", 11)
+        self.set_text_color(60)
+        self.cell(summary_width, 8, f"Deposit: {self._format_currency(currency, deposit)}", 0, 1, "R")
+        
+        self.set_x(summary_x)
+        self.set_font("helvetica", "B", 12)
+        self.set_text_color(0)
+        self.cell(summary_width, 8, f"Remaining: {self._format_currency(currency, remaining)}", 0, 1, "R")
 
-        # Cash note
+        # Cash note - Summary'nin altında
         if data.get("cash_note"):
             self.set_font("helvetica", "I", 10)
             self.set_text_color(120)
             self.set_y(self.get_y() + 3)
-            self.set_x(10)
-            self.cell(0, 10, self._safe_text(data["cash_note"]), ln=True)
+            self.set_x(summary_x)
+            self.multi_cell(summary_width, 5, self._safe_text(data["cash_note"]), 0, "R")
             self.set_text_color(0)
 
 class handler(BaseHTTPRequestHandler):
