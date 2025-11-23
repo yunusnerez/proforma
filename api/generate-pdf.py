@@ -69,7 +69,7 @@ class PDF(FPDF):
         # Title - ortada, büyük ve mavi
         title = self._safe_text(data.get('title', 'Invoice'))
         self.set_y(45)
-        self.set_x(70)
+        self.set_x(75)
         self.set_font("helvetica", "B", 16)
         self.set_text_color(0, 51, 102)
         self.cell(0, 20, title, ln=True, align="L")
